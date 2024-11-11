@@ -36,32 +36,47 @@ interface WorkoutDay {
   inProgress: boolean
 }
 
+// Definir los tipos de workout constantes
+const WORKOUT_TYPES = [
+  "Chest Day",
+  "Back Day",
+  "Leg Day Glutes",
+  "Leg Day Quads",
+  "Shoulders Day"
+] as const;
+
 export default function Home() {
-  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
-    {
-      id: 1,
-      name: "Chest Day",
-      exercises: [
+  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>(() => {
+    // Intentar cargar desde localStorage primero
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workoutDays')
+      if (saved) return JSON.parse(saved)
+    }
+    
+    // Si no hay datos guardados, usar los tipos predefinidos
+    return WORKOUT_TYPES.map((type, index) => ({
+      id: index + 1,
+      name: type,
+      exercises: type === "Chest Day" ? [
         { id: 1, name: "Bench Press", weights: [90, 110, 120], reps: [12, 9, 6] },
         { id: 2, name: "Incline Bench Press", weights: [80, 100, 110], reps: [12, 9, 6] },
         { id: 3, name: "Cables", weights: [50, 60, 70], reps: [15, 12, 10] },
         { id: 4, name: "Chest Fly Machine", weights: [100, 120, 140], reps: [12, 10, 8] },
-      ],
-      inProgress: false,
-    },
-    {
-      id: 2,
-      name: "Back Day",
-      exercises: [
+      ] : type === "Back Day" ? [
         { id: 1, name: "Lats", weights: [150, 165, 180], reps: [12, 9, 6] },
         { id: 2, name: "Dead", weights: [90, 110, 130], reps: [12, 9, 6] },
         { id: 3, name: "Delts opposite fly", weights: [85, 100, 115], reps: [12, 9, 6] },
         { id: 4, name: "Rows", weights: [100, 120, 140], reps: [12, 9, 6] },
         { id: 5, name: "Bar rows", weights: [60, 60, 60], reps: [18, 18, 18] },
-      ],
+      ] : [],
       inProgress: false,
-    },
-  ])
+    }))
+  })
+
+  // Guardar en localStorage cuando cambie workoutDays
+  useEffect(() => {
+    localStorage.setItem('workoutDays', JSON.stringify(workoutDays))
+  }, [workoutDays])
 
   const [editingExercise, setEditingExercise] = useState<{ dayId: number, exerciseId: number } | null>(null)
   const [newWorkoutName, setNewWorkoutName] = useState("")
@@ -178,6 +193,22 @@ export default function Home() {
   }
 
   const handleFinishWorkout = (dayId: number) => {
+    const workoutDay = workoutDays.find(day => day.id === dayId);
+    if (workoutDay) {
+      // Obtener workouts existentes
+      const existingWorkouts = JSON.parse(localStorage.getItem('workouts') || '[]');
+      
+      // Agregar nuevo workout
+      const newWorkout = {
+        id: Date.now(), // usar timestamp como ID único
+        type: workoutDay.name,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      // Guardar workouts actualizados
+      localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
+    }
+
     setWorkoutDays(prevDays =>
       prevDays.map(day =>
         day.id === dayId
@@ -185,8 +216,6 @@ export default function Home() {
           : day
       )
     )
-    // Here you would typically save the completed workout to your workout history
-    console.log(`Workout ${dayId} completed and saved to history`)
   }
 
   useEffect(() => {
