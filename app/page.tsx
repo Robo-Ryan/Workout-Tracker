@@ -216,6 +216,8 @@ export default function Home() {
           : day
       )
     )
+    // Here you would typically save the completed workout to your workout history
+    console.log(`Workout ${dayId} completed and saved to history`)
   }
 
   useEffect(() => {

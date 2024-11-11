@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,9 +59,7 @@ export default function WorkoutHistory() {
 
   // Guardar en localStorage cuando cambian los workouts
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('workouts', JSON.stringify(workouts))
-    }
+    localStorage.setItem('workouts', JSON.stringify(workouts))
   }, [workouts])
 
   useEffect(() => {
@@ -144,18 +142,50 @@ export default function WorkoutHistory() {
         type: newWorkout.type as Workout['type'],
         date: newWorkout.date
       }
-      setWorkouts([...workouts, newWorkoutEntry])
-      setNewWorkout({ type: '', date: newWorkout.date }) // Keep the date, reset the type
-      setIsDialogOpen(false) // Close the dialog after adding
+      const updatedWorkouts = [...workouts, newWorkoutEntry];
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
+      setNewWorkout({ type: '', date: newWorkout.date })
+      setIsDialogOpen(false)
     }
   }
 
+  const WorkoutCard = ({ workout }: { workout: Workout }) => {
+    const handleDelete = () => {
+      const updatedWorkouts = workouts.filter(w => w.id !== workout.id);
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
+    };
+
+    return (
+      <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{workout.type}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-600">{formatDate(workout.date)}</span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleDelete}
+            className="p-0 h-auto hover:bg-transparent"
+          >
+            <Trash2 className="h-4 w-4 text-gray-500" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <a href="../page.tsx" className="text-3xl font-bold mb-6">
-        <h1>Workout History</h1>
-      </a>
-      
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-bold my-6">
+        <a href="/" className="hover:opacity-80">
+          Workout-Tracker
+        </a>
+      </h1>
+      <h2 className="text-2xl font-semibold mb-6">Workout History</h2>
+
       <div className="mb-6 flex items-center justify-between">
         <button onClick={() => changeYear(-1)} className="p-2 rounded-full hover:bg-gray-200">
           <ChevronLeft className="w-6 h-6" />
@@ -230,10 +260,7 @@ export default function WorkoutHistory() {
             <ul className="space-y-2">
               {filteredWorkouts.map((workout) => (
                 <li key={workout.id}>
-                  <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow">
-                    <span className="font-medium">{workout.type}</span>
-                    <span className="text-gray-600 ml-4">{formatDate(workout.date)}</span>
-                  </div>
+                  <WorkoutCard workout={workout} />
                 </li>
               ))}
             </ul>
