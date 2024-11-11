@@ -7,15 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Workout } from '@/types/workout'
+import { WORKOUT_TYPES } from '@/lib/constants'
 
 // Predefined workout types
-const workoutTypes = [
-  "Chest Day",
-  "Back Day",
-  "Leg Day Glutes",
-  "Leg Day Quads",
-  "Shoulders Day"
-]
+const workoutTypes = WORKOUT_TYPES
 
 // Extended mock data for demonstration
 const mockWorkouts = [
@@ -48,9 +44,25 @@ const mockWorkouts = [
 
 export default function WorkoutHistory() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [workouts, setWorkouts] = useState(mockWorkouts)
+  const [workouts, setWorkouts] = useState<Workout[]>(() => {
+    // Intentar cargar desde localStorage al inicializar
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workouts')
+      if (saved) {
+        return JSON.parse(saved)
+      }
+    }
+    return mockWorkouts // Usar mockWorkouts como fallback
+  })
   const [newWorkout, setNewWorkout] = useState({ type: '', date: '' })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // Guardar en localStorage cuando cambian los workouts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('workouts', JSON.stringify(workouts))
+    }
+  }, [workouts])
 
   useEffect(() => {
     // Update the newWorkout date when currentDate changes
@@ -127,9 +139,9 @@ export default function WorkoutHistory() {
 
   const handleAddWorkout = () => {
     if (newWorkout.type && newWorkout.date) {
-      const newWorkoutEntry = {
+      const newWorkoutEntry: Workout = {
         id: workouts.length + 1,
-        type: newWorkout.type,
+        type: newWorkout.type as Workout['type'],
         date: newWorkout.date
       }
       setWorkouts([...workouts, newWorkoutEntry])
