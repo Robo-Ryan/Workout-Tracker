@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Trash2, Edit2, X, Save, Check } from "lucide-react"
+import { Trash2, Edit2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 import confetti from 'canvas-confetti'
 import Link from 'next/link'
+import { PlusIcon, Cross2Icon, CheckIcon } from "@radix-ui/react-icons"
 
 interface Exercise {
   id: number
@@ -29,60 +28,54 @@ interface Exercise {
   completed?: boolean
 }
 
+interface NewExercise {
+  name: string
+  weights: string
+  reps: string
+}
+
 interface WorkoutDay {
   id: number
   name: string
   exercises: Exercise[]
   inProgress: boolean
+  newExercise: NewExercise
 }
 
-// Definir los tipos de workout constantes
-const WORKOUT_TYPES = [
-  "Chest Day",
-  "Back Day",
-  "Leg Day Glutes",
-  "Leg Day Quads",
-  "Shoulders Day"
-] as const;
-
 export default function Home() {
-  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>(() => {
-    // Intentar cargar desde localStorage primero
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('workoutDays')
-      if (saved) return JSON.parse(saved)
-    }
-    
-    // Si no hay datos guardados, usar los tipos predefinidos
-    return WORKOUT_TYPES.map((type, index) => ({
-      id: index + 1,
-      name: type,
-      exercises: type === "Chest Day" ? [
+  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
+    {
+      id: 1,
+      name: "Chest Day",
+      exercises: [
         { id: 1, name: "Bench Press", weights: [90, 110, 120], reps: [12, 9, 6] },
         { id: 2, name: "Incline Bench Press", weights: [80, 100, 110], reps: [12, 9, 6] },
         { id: 3, name: "Cables", weights: [50, 60, 70], reps: [15, 12, 10] },
         { id: 4, name: "Chest Fly Machine", weights: [100, 120, 140], reps: [12, 10, 8] },
-      ] : type === "Back Day" ? [
+      ],
+      inProgress: false,
+      newExercise: { name: "", weights: "", reps: "" },
+    },
+    {
+      id: 2,
+      name: "Back Day",
+      exercises: [
         { id: 1, name: "Lats", weights: [150, 165, 180], reps: [12, 9, 6] },
         { id: 2, name: "Dead", weights: [90, 110, 130], reps: [12, 9, 6] },
         { id: 3, name: "Delts opposite fly", weights: [85, 100, 115], reps: [12, 9, 6] },
         { id: 4, name: "Rows", weights: [100, 120, 140], reps: [12, 9, 6] },
         { id: 5, name: "Bar rows", weights: [60, 60, 60], reps: [18, 18, 18] },
-      ] : [],
+      ],
       inProgress: false,
-    }))
-  })
-
-  // Guardar en localStorage cuando cambie workoutDays
-  useEffect(() => {
-    localStorage.setItem('workoutDays', JSON.stringify(workoutDays))
-  }, [workoutDays])
+      newExercise: { name: "", weights: "", reps: "" },
+    },
+  ])
 
   const [editingExercise, setEditingExercise] = useState<{ dayId: number, exerciseId: number } | null>(null)
   const [newWorkoutName, setNewWorkoutName] = useState("")
   const [editedWeights, setEditedWeights] = useState<string[]>([])
   const [editedReps, setEditedReps] = useState<string[]>([])
-  const [newExercise, setNewExercise] = useState({ name: "", weights: "", reps: "" })
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false)
 
   const handleEditExercise = (dayId: number, exerciseId: number, weights: number[], reps: number[]) => {
     setEditingExercise({ dayId, exerciseId })
@@ -134,6 +127,7 @@ export default function Home() {
           name: newWorkoutName.trim(),
           exercises: [],
           inProgress: false,
+          newExercise: { name: "", weights: "", reps: "" },
         }
       ])
       setNewWorkoutName("")
@@ -165,50 +159,43 @@ export default function Home() {
     )
   }
 
-  const handleAddExercise = (dayId: number) => {
-    if (newExercise.name && newExercise.weights && newExercise.reps) {
-      const weights = newExercise.weights.split(',').map(Number)
-      const reps = newExercise.reps.split(',').map(Number)
-      
-      setWorkoutDays(prevDays => 
-        prevDays.map(day => 
-          day.id === dayId 
-            ? {
-                ...day,
-                exercises: [
-                  ...day.exercises,
-                  {
-                    id: Date.now(),
-                    name: newExercise.name,
-                    weights,
-                    reps
-                  }
-                ]
-              }
-            : day
-        )
+  const handleNewExerciseChange = (dayId: number, field: keyof NewExercise, value: string) => {
+    setWorkoutDays(prevDays =>
+      prevDays.map(day =>
+        day.id === dayId
+          ? { ...day, newExercise: { ...day.newExercise, [field]: value } }
+          : day
       )
-      setNewExercise({ name: "", weights: "", reps: "" })
-    }
+    )
+  }
+
+  const handleAddExercise = (dayId: number) => {
+    setWorkoutDays(prevDays =>
+      prevDays.map(day => {
+        if (day.id === dayId && day.newExercise.name && day.newExercise.weights && day.newExercise.reps) {
+          const weights = day.newExercise.weights.split(',').map(Number)
+          const reps = day.newExercise.reps.split(',').map(Number)
+          
+          return {
+            ...day,
+            exercises: [
+              ...day.exercises,
+              {
+                id: Date.now(),
+                name: day.newExercise.name,
+                weights,
+                reps
+              }
+            ],
+            newExercise: { name: "", weights: "", reps: "" }
+          }
+        }
+        return day
+      })
+    )
   }
 
   const handleFinishWorkout = (dayId: number) => {
-    const workoutDay = workoutDays.find(day => day.id === dayId);
-    if (workoutDay) {
-      // Obtener workouts existentes
-      const existingWorkouts = JSON.parse(localStorage.getItem('workouts') || '[]');
-      
-      // Agregar nuevo workout
-      const newWorkout = {
-        id: Date.now(), // usar timestamp como ID único
-        type: workoutDay.name,
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      // Guardar workouts actualizados
-      localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
-    }
-
     setWorkoutDays(prevDays =>
       prevDays.map(day =>
         day.id === dayId
@@ -216,6 +203,7 @@ export default function Home() {
           : day
       )
     )
+    setShowCompletionDialog(true)
     // Here you would typically save the completed workout to your workout history
     console.log(`Workout ${dayId} completed and saved to history`)
   }
@@ -228,6 +216,7 @@ export default function Home() {
           spread: 70,
           origin: { y: 0.6 }
         })
+        handleFinishWorkout(day.id)
       }
     })
   }, [workoutDays])
@@ -239,7 +228,7 @@ export default function Home() {
         <Dialog>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> Add New Workout
+              <PlusIcon className="mr-2 h-4 w-4" /> Add New Workout
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -283,17 +272,35 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">Exercise</TableHead>
+                    <TableHead className="w-[300px]">Exercise</TableHead>
                     <TableHead>Weight (lbs)</TableHead>
                     <TableHead>Reps</TableHead>
-                    <TableHead className="w-[100px]">Edit</TableHead>
                     {day.inProgress && <TableHead className="w-[100px]">Completed</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {day.exercises.map(exercise => (
                     <TableRow key={exercise.id}>
-                      <TableCell className="font-medium bg-secondary">{exercise.name}</TableCell>
+                      <TableCell className="font-medium bg-secondary flex items-center justify-between">
+                        <span>{exercise.name}</span>
+                        {editingExercise?.dayId === day.id && editingExercise?.exerciseId === exercise.id ? (
+                          <div className="flex">
+                            <Button variant="ghost" size="sm" onClick={() => handleSaveExercise(day.id, exercise.id)}>
+                              <Save className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteExercise(day.id, exercise.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditingExercise(null)}>
+                              <Cross2Icon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => handleEditExercise(day.id, exercise.id, exercise.weights, exercise.reps)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {editingExercise?.dayId === day.id && editingExercise?.exerciseId === exercise.id ? (
                           <div className="flex flex-wrap gap-2">
@@ -350,70 +357,53 @@ export default function Home() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {editingExercise?.dayId === day.id && editingExercise?.exerciseId === exercise.id ? (
-                          <>
-                            <Button variant="ghost" size="sm" onClick={() => handleSaveExercise(day.id, exercise.id)}>
-                              <Save className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteExercise(day.id, exercise.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setEditingExercise(null)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <Button variant="ghost" size="sm" onClick={() => handleEditExercise(day.id, exercise.id, exercise.weights, exercise.reps)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
                       {day.inProgress && (
                         <TableCell>
-                          <RadioGroup
-                            onValueChange={(value) => handleCompleteExercise(day.id, exercise.id, value === 'completed')}
-                            value={exercise.completed ? 'completed' : 'incomplete'}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="completed" id={`completed-${exercise.id}`} />
-                              <RadioGroupItem value="incomplete" id={`incomplete-${exercise.id}`} className="hidden" />
-                              <Label htmlFor={`completed-${exercise.id}`} className="cursor-pointer">
-                                {exercise.completed ? <Check className="h-4 w-4 text-green-500" /> : null}
-                              </Label>
-                            </div>
-                          </RadioGroup>
+                          <div className="flex items-center justify-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-10 h-10 p-0"
+                              onClick={() => handleCompleteExercise(day.id, exercise.id, !exercise.completed)}
+                            >
+                              {exercise.completed ? (
+                                <CheckIcon className="h-6 w-6 text-green-500" />
+                              ) : (
+                                <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell>
+                    <TableCell className="flex items-center justify-between">
                       <Input
-                        placeholder="New exercise name"
-                        
-                        value={newExercise.name}
-                        onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
+                        placeholder="Pushups"
+                        className="placeholder:sm:hidden"
+                        value={day.newExercise.name}
+                        onChange={(e) => handleNewExerciseChange(day.id, 'name', e.target.value)}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Weight"
-                        value={newExercise.weights}
-                        onChange={(e) => setNewExercise({ ...newExercise, weights: e.target.value })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Reps"
-                        value={newExercise.reps}
-                        onChange={(e) => setNewExercise({ ...newExercise, reps: e.target.value })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button onClick={() => handleAddExercise(day.id)}>
-                        <Plus className="h-4 w-4" />
+                      <Button variant="secondary" onClick={() => handleAddExercise(day.id)}>
+                        <PlusIcon className="h-4 w-4" />
                       </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        placeholder="50, 60, 70"
+                        className="placeholder:sm:hidden"
+                        value={day.newExercise.weights}
+                        onChange={(e) => handleNewExerciseChange(day.id, 'weights', e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        placeholder="12, 9, 6"
+                        className="placeholder:sm:hidden"
+                        value={day.newExercise.reps}
+                        onChange={(e) => handleNewExerciseChange(day.id, 'reps', e.target.value)}
+                      />
                     </TableCell>
                     {day.inProgress && <TableCell />}
                   </TableRow>
@@ -423,6 +413,17 @@ export default function Home() {
           </Card>
         ))}
       </div>
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center text-2xl">
+              <span role="img" aria-label="Weightlifter" className="mr-2">🏋️</span> Good work!
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-center">Your workout was added to workout history.</p>
+          <Button onClick={() => setShowCompletionDialog(false)} className="mt-4">Okay</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
