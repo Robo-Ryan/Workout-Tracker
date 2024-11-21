@@ -1,3 +1,6 @@
+// =============================================
+// ============= 1. IMPORTS =================== 
+// =============================================
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -10,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Workout } from '@/types/workout'
 import { WORKOUT_TYPES } from '@/lib/constants'
 
+// =============================================
+// ============= 2. DATA ====================== 
+// =============================================
 // Predefined workout types
 const workoutTypes = WORKOUT_TYPES
 
@@ -43,6 +49,9 @@ const mockWorkouts = [
 ]
 
 export default function WorkoutHistory() {
+  // =============================================
+  // ============= 3. INITIALIZATION ============ 
+  // =============================================
   const [currentDate, setCurrentDate] = useState(new Date())
   const [workouts, setWorkouts] = useState<Workout[]>(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +79,9 @@ export default function WorkoutHistory() {
     }))
   }, [currentDate])
 
+  // =============================================
+  // ============= 4. USER INTERACTIONS ========= 
+  // =============================================
   const formatDate = (date: string) => {
     const [year, month, day] = date.split('-').map(Number)
     const d = new Date(year, month - 1, day, 12, 0, 0) // Fecha local a mediodía
@@ -116,6 +128,22 @@ export default function WorkoutHistory() {
     return acc
   }, {} as Record<string, boolean>)
 
+  const handleAddWorkout = () => {
+    if (newWorkout.type && newWorkout.date) {
+      const newWorkoutEntry: Workout = {
+        id: Date.now(),
+        type: newWorkout.type as Workout['type'],
+        date: newWorkout.date
+      };
+      
+      const updatedWorkouts = [...workouts, newWorkoutEntry];
+      setWorkouts(updatedWorkouts);
+      localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
+      setNewWorkout({ type: '', date: newWorkout.date });
+      setIsDialogOpen(false);
+    }
+  };
+
   const renderMonthNavigation = () => {
     const months = []
     const year = currentDate.getFullYear()
@@ -146,22 +174,6 @@ export default function WorkoutHistory() {
     return months
   }
 
-  const handleAddWorkout = () => {
-    if (newWorkout.type && newWorkout.date) {
-      const newWorkoutEntry: Workout = {
-        id: Date.now(),
-        type: newWorkout.type as Workout['type'],
-        date: newWorkout.date
-      };
-      
-      const updatedWorkouts = [...workouts, newWorkoutEntry];
-      setWorkouts(updatedWorkouts);
-      localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
-      setNewWorkout({ type: '', date: newWorkout.date });
-      setIsDialogOpen(false);
-    }
-  };
-
   const WorkoutCard = ({ workout }: { workout: Workout }) => {
     const handleDelete = () => {
       const updatedWorkouts = workouts.filter(w => w.id !== workout.id);
@@ -189,6 +201,9 @@ export default function WorkoutHistory() {
     );
   };
 
+  // =============================================
+  // ============= 5. RENDER ==================== 
+  // =============================================
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold my-6">
