@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Trash2, Edit2, Save } from "lucide-react"
+import { Trash2, Edit2, Save, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,9 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import confetti from 'canvas-confetti'
 import Link from 'next/link'
-import { PlusIcon, Cross2Icon, CheckIcon } from "@radix-ui/react-icons"
+import { PlusIcon, Cross2Icon } from "@radix-ui/react-icons"
+import type { Workout } from "@/types/workout"
+import type { WorkoutType } from "@/types/workout"
 
 interface Exercise {
   id: number
@@ -196,16 +198,35 @@ export default function Home() {
   }
 
   const handleFinishWorkout = (dayId: number) => {
+    const workoutDay = workoutDays.find(day => day.id === dayId);
+    
+    if (workoutDay) {
+      const existingWorkouts: Workout[] = JSON.parse(localStorage.getItem('workouts') || '[]');
+      
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth(); // Mes 0-indexado
+      const day = today.getDate();
+      const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      const newWorkout: Workout = {
+        id: Date.now(),
+        type: workoutDay.name as WorkoutType,
+        date: formattedDate
+      };
+      
+      localStorage.setItem('workouts', JSON.stringify([...existingWorkouts, newWorkout]));
+    }
+
     setWorkoutDays(prevDays =>
       prevDays.map(day =>
         day.id === dayId
           ? { ...day, inProgress: false, exercises: day.exercises.map(ex => ({ ...ex, completed: false })) }
           : day
       )
-    )
-    setShowCompletionDialog(true)
-    // Here you would typically save the completed workout to your workout history
-    console.log(`Workout ${dayId} completed and saved to history`)
+    );
+    
+    setShowCompletionDialog(true);
   }
 
   useEffect(() => {
@@ -254,8 +275,8 @@ export default function Home() {
         </Link>
       </div>
       <div className="space-y-6">
-        {workoutDays.map(day => (
-          <Card key={day.id} className="w-full">
+        {workoutDays.map((day, index) => (
+          <Card key={index} className="w-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{day.name}</CardTitle>
               {!day.inProgress ? (
@@ -280,8 +301,8 @@ export default function Home() {
                 </TableHeader>
                 <TableBody>
                   {day.exercises.map(exercise => (
-                    <TableRow key={exercise.id}>
-                      <TableCell className="font-medium bg-secondary flex items-center justify-between">
+                    <TableRow key={exercise.id} className="bg-secondary">
+                      <TableCell className="font-medium flex items-center justify-between">
                         <span>{exercise.name}</span>
                         {editingExercise?.dayId === day.id && editingExercise?.exerciseId === exercise.id ? (
                           <div className="flex">
@@ -363,13 +384,13 @@ export default function Home() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="w-10 h-10 p-0"
+                              className="w-12 h-12 p-0"
                               onClick={() => handleCompleteExercise(day.id, exercise.id, !exercise.completed)}
                             >
                               {exercise.completed ? (
-                                <CheckIcon className="h-6 w-6 text-green-500" />
+                                <Check className="h-10 w-10 text-green-600" />
                               ) : (
-                                <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />
+                                <div className="h-8 w-8 rounded-full border-2 border-muted-foreground" />
                               )}
                             </Button>
                           </div>
@@ -391,7 +412,6 @@ export default function Home() {
                     </TableCell>
                     <TableCell>
                       <Input
-                        placeholder="50, 60, 70"
                         className="placeholder:sm:hidden"
                         value={day.newExercise.weights}
                         onChange={(e) => handleNewExerciseChange(day.id, 'weights', e.target.value)}
@@ -399,7 +419,6 @@ export default function Home() {
                     </TableCell>
                     <TableCell>
                       <Input
-                        placeholder="12, 9, 6"
                         className="placeholder:sm:hidden"
                         value={day.newExercise.reps}
                         onChange={(e) => handleNewExerciseChange(day.id, 'reps', e.target.value)}

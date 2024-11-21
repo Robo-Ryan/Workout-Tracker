@@ -45,37 +45,41 @@ const mockWorkouts = [
 export default function WorkoutHistory() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [workouts, setWorkouts] = useState<Workout[]>(() => {
-    // Intentar cargar desde localStorage al inicializar
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('workouts')
       if (saved) {
         return JSON.parse(saved)
       }
     }
-    return mockWorkouts // Usar mockWorkouts como fallback
+    return mockWorkouts
   })
   const [newWorkout, setNewWorkout] = useState({ type: '', date: '' })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Guardar en localStorage cuando cambian los workouts
   useEffect(() => {
     localStorage.setItem('workouts', JSON.stringify(workouts))
   }, [workouts])
 
   useEffect(() => {
-    // Update the newWorkout date when currentDate changes
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1; // Mes 1-indexado para la fecha
+    const day = 1; // Siempre el primer día del mes para el nuevo workout
     setNewWorkout(prev => ({
       ...prev,
-      date: `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`
+      date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     }))
   }, [currentDate])
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const [year, month, day] = date.split('-').map(Number)
+    const d = new Date(year, month - 1, day, 12, 0, 0) // Fecha local a mediodía
+    return d.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })
   }
 
   const getMonth = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'long' })
+      .charAt(0).toUpperCase() + 
+      date.toLocaleDateString('en-US', { month: 'long' }).slice(1)
   }
 
   const changeMonth = (month: number) => {
@@ -86,10 +90,17 @@ export default function WorkoutHistory() {
     setCurrentDate(prevDate => new Date(prevDate.getFullYear() + increment, prevDate.getMonth(), 1))
   }
 
-  const filteredWorkouts = workouts.filter(workout => {
-    const workoutDate = new Date(workout.date)
-    return workoutDate.getMonth() === currentDate.getMonth() && workoutDate.getFullYear() === currentDate.getFullYear()
-  })
+  const filteredWorkouts = workouts
+    .filter(workout => {
+      const [year, month, day] = workout.date.split('-').map(Number)
+      const workoutDate = new Date(year, month - 1, day, 12, 0, 0)
+      return workoutDate.getMonth() === currentDate.getMonth() && 
+             workoutDate.getFullYear() === currentDate.getFullYear();
+    })
+    .sort((a, b) => {
+      // Ordenar por fecha de más antigua a más reciente
+      return new Date(a.date).getTime() - new Date(b.date).getTime()
+    });
 
   const workoutTotals = filteredWorkouts.reduce((acc, workout) => {
     acc[workout.type] = (acc[workout.type] || 0) + 1
@@ -99,8 +110,8 @@ export default function WorkoutHistory() {
   const totalWorkouts = filteredWorkouts.length
 
   const monthsWithActivity = workouts.reduce((acc, workout) => {
-    const workoutDate = new Date(workout.date)
-    const monthKey = `${workoutDate.getFullYear()}-${workoutDate.getMonth()}`
+    const [year, month] = workout.date.split('-').map(Number)
+    const monthKey = `${year}-${month - 1}` // Mes 0-indexado
     acc[monthKey] = true
     return acc
   }, {} as Record<string, boolean>)
@@ -125,7 +136,7 @@ export default function WorkoutHistory() {
             ${hasActivity && !isCurrentMonth ? 'text-blue-600' : ''}
           `}
         >
-          <span>{date.toLocaleString('default', { month: 'short' })}</span>
+          <span>{date.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</span>
           <span className="w-1 h-1 mt-1">
             {hasActivity && <span className="block w-full h-full bg-blue-500 rounded-full"></span>}
           </span>
@@ -138,17 +149,18 @@ export default function WorkoutHistory() {
   const handleAddWorkout = () => {
     if (newWorkout.type && newWorkout.date) {
       const newWorkoutEntry: Workout = {
-        id: workouts.length + 1,
+        id: Date.now(),
         type: newWorkout.type as Workout['type'],
         date: newWorkout.date
-      }
+      };
+      
       const updatedWorkouts = [...workouts, newWorkoutEntry];
       setWorkouts(updatedWorkouts);
       localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
-      setNewWorkout({ type: '', date: newWorkout.date })
-      setIsDialogOpen(false)
+      setNewWorkout({ type: '', date: newWorkout.date });
+      setIsDialogOpen(false);
     }
-  }
+  };
 
   const WorkoutCard = ({ workout }: { workout: Workout }) => {
     const handleDelete = () => {
