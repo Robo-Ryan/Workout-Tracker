@@ -64,6 +64,7 @@ export default function WorkoutHistory() {
   })
   const [newWorkout, setNewWorkout] = useState({ type: '', date: '' })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [newBodyweight, setNewBodyweight] = useState(0)
 
   useEffect(() => {
     localStorage.setItem('workouts', JSON.stringify(workouts))
@@ -79,8 +80,12 @@ export default function WorkoutHistory() {
     }))
   }, [currentDate])
 
+  useEffect(() => {
+    setNewBodyweight(0)
+  }, [newWorkout])
+
   // =============================================
-  // ============= 4. USER INTERACTIONS ========= 
+  // ============= 4. USER INTERACTIONS ========== 
   // =============================================
   const formatDate = (date: string) => {
     const [year, month, day] = date.split('-').map(Number)
