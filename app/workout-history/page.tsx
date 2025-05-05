@@ -17,6 +17,7 @@ import { WORKOUT_TYPES } from '@/lib/constants'
 import { supabase } from '@/lib/supabaseClient'
 import { useUser } from '@/hooks/useUser'
 import type { Workout } from '@/types/workout'
+import Navbar from '@/components/navbar'
 
 export default function WorkoutHistory() {
   const { user } = useUser()
@@ -152,12 +153,10 @@ export default function WorkoutHistory() {
   }, {} as Record<string, number>)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold my-6">
-        <a href="/" className="hover:opacity-80">Workout-Tracker</a>
-      </h1>
-
-      <h2 className="text-2xl font-semibold mb-6">Workout History</h2>
+    <div>
+    <Navbar />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <h2 className="text-2xl font-semibold mb-6">History</h2>
 
       <div className="mb-6 flex items-center justify-between">
         <button onClick={() => changeYear(-1)} className="p-2 rounded-full hover:bg-gray-200">
@@ -264,10 +263,9 @@ export default function WorkoutHistory() {
             </div>
           </div>
         </div>
-      </div>
+     </div>
     </div>
-  )
+   </div>
+  );
 }
-
-
 
