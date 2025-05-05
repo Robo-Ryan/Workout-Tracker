@@ -20,7 +20,7 @@ export default function Navbar() {
 
   return (
     <nav className="w-full px-4 py-3 border-b flex justify-between items-center">
-      <a href="/" className="text-xl font-bold hover:opacity-80">Workout-Tracker</a>
+      <a href="/" className="text-xl font-bold hover:opacity-80">Workout-Tracker!</a>
       {user && (
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/profile')}>
