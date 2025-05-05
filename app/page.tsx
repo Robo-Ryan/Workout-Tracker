@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useUser } from "@/hooks/useUser"
 import { useRouter } from 'next/navigation'
 
+
 interface Exercise {
   id: number
   name: string
@@ -142,6 +143,14 @@ export default function Home() {
     }
   }, [user, isLoading]);
     
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error("Logout failed:", error)
+    } else {
+      router.push("/login")
+    }
+  }
 
   const handleAddWorkout = () => {
     if (!newWorkoutName.trim()) return
@@ -240,15 +249,21 @@ export default function Home() {
     setEditingExercise(null)
   }
 
-  const handleDeleteExercise = (dayId: number, exerciseId: number) => {
+  const handleDeleteExercise = async (dayId: number, exerciseId: number) => {
+    const { error } = await supabase.from("exercises").delete().eq("id", exerciseId);
+    if (error) {
+      console.error("Failed to delete exercise:", error);
+      return;
+    }
+  
     setWorkoutDays(prev =>
       prev.map(day =>
         day.id === dayId
           ? { ...day, exercises: day.exercises.filter(ex => ex.id !== exerciseId) }
           : day
       )
-    )
-  }
+    );
+  };
 
   const handleCompleteExercise = (dayId: number, exerciseId: number, completed: boolean) => {
     setWorkoutDays(prev =>
@@ -316,6 +331,11 @@ export default function Home() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold my-6">Workout-Tracker</h1>
+      {user && (
+    <Button variant="outline" onClick={handleLogout}>
+      Log out
+    </Button>
+  )}
       <div className="flex justify-between items-center mb-6">
         <Dialog>
           <DialogTrigger asChild>
