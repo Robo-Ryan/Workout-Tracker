@@ -17,6 +17,8 @@ import { PlusIcon, Cross2Icon } from "@radix-ui/react-icons"
 import { supabase } from '@/lib/supabaseClient'
 import { useUser } from "@/hooks/useUser"
 import { useRouter } from 'next/navigation'
+import Navbar from '@/components/navbar'
+
 
 
 interface Exercise {
@@ -61,56 +63,6 @@ export default function Home() {
       .select("id, type, exercises(id, name, weights, reps, completed)")
       .eq("user_id", user.id)
       .order("id", { ascending: false });
-
-    if (data && data.length === 0) {
-      const today = new Date().toISOString().split("T")[0];
-
-      const { data: seedWorkout, error: seedError } = await supabase
-        .from("workouts")
-        .insert([
-          { user_id: user.id, type: "Chest Day", date: today },
-          { user_id: user.id, type: "Back Day", date: today },
-        ])
-        .select();
-
-      if (seedError || !seedWorkout) {
-        console.error("Seeding error:", seedError);
-        return;
-      }
-
-      await supabase.from("exercises").insert([
-        {
-          workout_id: seedWorkout.find(w => w.type === "Chest Day")?.id,
-          name: "Bench Press",
-          weights: [90, 110, 120],
-          reps: [12, 9, 6],
-          completed: false,
-        },
-        {
-          workout_id: seedWorkout.find(w => w.type === "Chest Day")?.id,
-          name: "Incline Bench Press",
-          weights: [80, 100, 110],
-          reps: [12, 9, 6],
-          completed: false,
-        },
-        {
-          workout_id: seedWorkout.find(w => w.type === "Back Day")?.id,
-          name: "Deadlift",
-          weights: [135, 155, 185],
-          reps: [10, 8, 6],
-          completed: false,
-        },
-        {
-          workout_id: seedWorkout.find(w => w.type === "Back Day")?.id,
-          name: "Pullups",
-          weights: [0],
-          reps: [10, 10, 10],
-          completed: false,
-        },
-      ]);
-
-      return fetchWorkouts(); // refetch after seeding
-    }
 
     if (error) {
       console.error("Error fetching workouts:", error);
@@ -181,20 +133,23 @@ export default function Home() {
   const handleFinishWorkout = async (dayId: number) => {
     const day = workoutDays.find(d => d.id === dayId)
     if (!day || !user) return
-
+  
     const today = new Date().toISOString().split("T")[0]
+  
+    // 1. Save to workouts table
     const { data, error } = await supabase
       .from("workouts")
       .insert([{ user_id: user.id, type: day.name, date: today }])
       .select()
-
+  
     if (error || !data) {
       console.error("Workout save error:", error)
       return
     }
-
+  
     const workoutId = data[0].id
-
+  
+    // 2. Save exercises to exercises table
     await supabase
       .from("exercises")
       .insert(day.exercises.map(ex => ({
@@ -204,7 +159,23 @@ export default function Home() {
         reps: ex.reps,
         completed: ex.completed ?? false,
       })))
-
+  
+    // ✅ 3. Also insert into workout_history for tracking!
+    const { error: historyError } = await supabase
+      .from("workout_history")
+      .insert([
+        {
+          user_id: user.id,
+          type: day.name,
+          date: today,
+        }
+      ])
+  
+    if (historyError) {
+      console.error("Workout history insert error:", historyError)
+    }
+  
+    // 4. Reset local state and show dialog
     setWorkoutDays(prev =>
       prev.map(d =>
         d.id === dayId
@@ -212,7 +183,7 @@ export default function Home() {
           : d
       )
     )
-
+  
     setShowCompletionDialog(true)
   }
 
@@ -329,13 +300,9 @@ export default function Home() {
 
   // ⬇️ The rendering block is unchanged and can be reused as is
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold my-6">Workout-Tracker</h1>
-      {user && (
-    <Button variant="outline" onClick={handleLogout}>
-      Log out
-    </Button>
-  )}
+    <div>
+    <Navbar />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
       <div className="flex justify-between items-center mb-6">
         <Dialog>
           <DialogTrigger asChild>
@@ -534,6 +501,7 @@ export default function Home() {
           <Button onClick={() => setShowCompletionDialog(false)} className="mt-4">Okay</Button>
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   )
 }
