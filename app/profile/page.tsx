@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Navbar from '@/components/navbar'
+import Navbar from '@/components/ui/navbar'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabaseClient'
 import { Input } from '@/components/ui/input'

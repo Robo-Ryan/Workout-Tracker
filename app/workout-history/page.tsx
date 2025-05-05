@@ -17,7 +17,7 @@ import { WORKOUT_TYPES } from '@/lib/constants'
 import { supabase } from '@/lib/supabaseClient'
 import { useUser } from '@/hooks/useUser'
 import type { Workout } from '@/types/workout'
-import Navbar from '@/components/navbar'
+import Navbar from '@/components/ui/navbar'
 
 export default function WorkoutHistory() {
   const { user } = useUser()

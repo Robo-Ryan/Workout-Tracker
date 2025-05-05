@@ -17,7 +17,7 @@ import { PlusIcon, Cross2Icon } from "@radix-ui/react-icons"
 import { supabase } from '@/lib/supabaseClient'
 import { useUser } from "@/hooks/useUser"
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/navbar'
+import Navbar from '@/components/ui/navbar'
 
 
 
