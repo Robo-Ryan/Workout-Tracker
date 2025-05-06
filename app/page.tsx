@@ -95,14 +95,14 @@ export default function Home() {
     }
   }, [user, isLoading]);
     
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error("Logout failed:", error)
-    } else {
-      router.push("/login")
-    }
-  }
+  // const handleLogout = async () => {
+  //   const { error } = await supabase.auth.signOut()
+  //   if (error) {
+  //     console.error("Logout failed:", error)
+  //   } else {
+  //     router.push("/login")
+  //   }
+  // }
 
   const handleAddWorkout = () => {
     if (!newWorkoutName.trim()) return
